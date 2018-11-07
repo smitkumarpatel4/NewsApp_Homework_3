@@ -57,16 +57,20 @@ public class NewsRecyclerViewAdapter extends RecyclerView.Adapter<NewsRecyclerVi
         }
 
         public void bind(final int listIndex){
-            title.setText(mNewsList.get(listIndex).getTitle());
-            description.setText(mNewsList.get(listIndex).getDescription());
+            title.setText("Titel:"  + mNewsList.get(listIndex).getTitle());
+            description.setText("Description:" +mNewsList.get(listIndex).getDescription());
            // url.setText(mNewsList.get(listIndex).getUrl());
-            date.setText(mNewsList.get(listIndex).getPublishedAt());
+            date.setText("Date:"+mNewsList.get(listIndex).getPublishedAt());
             itemView.setOnClickListener(new View.OnClickListener(){
                 @Override
                 public void onClick(View view) {
                     String urlString = mNewsList.get(listIndex).getUrl();
-                    Intent intent = new Intent(mContext, WebActivity.class);
-                    intent.putExtra(Intent.EXTRA_TEXT, urlString);
+//                    Intent intent = new Intent(mContext, WebActivity.class);
+//                    intent.putExtra(Intent.EXTRA_TEXT, urlString);
+//                    mContext.startActivity(intent);
+
+                    Intent intent = new Intent(Intent.ACTION_VIEW);
+                    intent.setData(Uri.parse(urlString));
                     mContext.startActivity(intent);
                 }
             });
