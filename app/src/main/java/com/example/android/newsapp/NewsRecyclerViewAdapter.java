@@ -65,10 +65,6 @@ public class NewsRecyclerViewAdapter extends RecyclerView.Adapter<NewsRecyclerVi
                 @Override
                 public void onClick(View view) {
                     String urlString = mNewsList.get(listIndex).getUrl();
-//                    Intent intent = new Intent(mContext, WebActivity.class);
-//                    intent.putExtra(Intent.EXTRA_TEXT, urlString);
-//                    mContext.startActivity(intent);
-
                     Intent intent = new Intent(Intent.ACTION_VIEW);
                     intent.setData(Uri.parse(urlString));
                     mContext.startActivity(intent);
