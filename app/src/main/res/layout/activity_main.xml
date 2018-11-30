@@ -16,7 +16,7 @@
             android:id="@+id/search_box"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="To get latestnews news click the Referesh"
+            android:hint="To get latest news click the Referesh"
             android:textSize="22sp" />
 
         <ProgressBar

@@ -3,5 +3,11 @@
 
     <string name="search">Search</string>
     <string name="title_activity_web">WebActivity</string>
+    <string name="todo">TODO</string>
+
+
+    <string name="notification_title">Latest News</string>
+    <string name="notification_body">Loading Latest News </string>
+    <string name="main_notification_channel_name">Primary</string>
 
 </resources>

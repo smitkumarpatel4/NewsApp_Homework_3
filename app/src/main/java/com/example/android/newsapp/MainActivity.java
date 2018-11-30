@@ -1,162 +1,121 @@
 package com.example.android.newsapp;
 
+import android.arch.lifecycle.Observer;
+import android.arch.lifecycle.ViewModelProvider;
+import android.arch.lifecycle.ViewModelProviders;
+import android.content.Context;
+import android.os.AsyncTask;
 import android.os.Bundle;
-import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
-import android.support.v4.app.LoaderManager;
-import android.support.v4.content.AsyncTaskLoader;
-import android.support.v4.content.Loader;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.view.View;
-import android.widget.EditText;
 import android.widget.ProgressBar;
+import android.widget.Toast;
+
+import com.example.android.newsapp.Adapter.NewsRecyclerViewAdapter;
+import com.example.android.newsapp.FirebaseService.NewsItemFireBaseJobDispatcher;
+import com.example.android.newsapp.Models.NewsItem;
+import com.example.android.newsapp.Models.NewsItemDatabase;
+import com.example.android.newsapp.Models.NewsItemViewModel;
+import com.example.android.newsapp.Utils.JsonUtils;
+import com.example.android.newsapp.Utils.NetworkUtils;
+import com.firebase.jobdispatcher.FirebaseJobDispatcher;
 
 import java.io.IOException;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.List;
 
-public class MainActivity extends AppCompatActivity implements LoaderManager.LoaderCallbacks<String> {
-    private EditText mSearchText;
-    private ProgressBar mProgressBar;
+public class MainActivity extends AppCompatActivity{
 
     private static final String TAG = "MainActivity";
-    private static final int LOADER_ID=1;
-    private static final String SEARCH_QUERY_URL_EXTRA = "searchQuery";
-    private static final String SEARCH_QUERY_RESULT = "searchResults";
-    private String newsSearchResult;
+
+   // private ProgressBar mProgressbar;
 
     private RecyclerView mRecyclerView;
     private NewsRecyclerViewAdapter mAdapter;
-    private ArrayList<NewsItem> newsItem = new ArrayList<>();
+    private NewsItemViewModel mNewsItemViewModel;
+
+    private List<NewsItem> mNewsList;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        mSearchText = (EditText) findViewById(R.id.search_box);
-        mProgressBar = (ProgressBar) findViewById(R.id.progress);
+      //  mProgressbar = (ProgressBar) findViewById(R.id.progress);
 
         mRecyclerView = (RecyclerView)findViewById(R.id.news_recyclerview);
+
         LinearLayoutManager layoutManager = new LinearLayoutManager(this);
         mRecyclerView.setLayoutManager(layoutManager);
         mRecyclerView.setHasFixedSize(true);
 
-        mAdapter = new NewsRecyclerViewAdapter(MainActivity.this, newsItem);
+       // mAdapter = new NewsRecyclerViewAdapter(MainActivity.this, mNewsItemViewModel);
+
+        mAdapter = new NewsRecyclerViewAdapter(MainActivity.this, mNewsList);
         mRecyclerView.setAdapter(mAdapter);
-        //makeNewsURL();
 
-        if(savedInstanceState != null && savedInstanceState.containsKey(SEARCH_QUERY_RESULT)){
-            String searchResults = savedInstanceState.getString(SEARCH_QUERY_RESULT);
-            populateRecyclerView(searchResults);
-        }
+        mNewsItemViewModel = ViewModelProviders.of(this).get(NewsItemViewModel.class);
 
-    }
-
-    protected void onSaveInstanceState(Bundle outState) {
-        super.onSaveInstanceState(outState);
-        outState.putString(SEARCH_QUERY_RESULT, newsSearchResult);
-
-    }
-
-    private URL  makeNewsURL(){
-        URL newsURL = NetworkUtils.buildUrl();
-        return newsURL;
-        //new NewsQueryTask().execute(newsURL);
-    }
-
-    @Override
-    protected void onResume() {
-        super.onResume();
-        mProgressBar.setVisibility(View.GONE);
-    }
-
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        int itemThatWasClickedId = item.getItemId();
-        if (itemThatWasClickedId == R.id.action_search) {
-            URL url = makeNewsURL();
-            Bundle bundle = new Bundle();
-            bundle.putString(SEARCH_QUERY_URL_EXTRA, url.toString());
-            LoaderManager loaderManager = getSupportLoaderManager();
-            Loader<String> gitHubSearchLoader = loaderManager.getLoader(LOADER_ID);
-            if(gitHubSearchLoader == null){
-                loaderManager.initLoader(LOADER_ID, bundle, this).forceLoad();
-            }else{
-                loaderManager.restartLoader(LOADER_ID, bundle, this).forceLoad();
-            }
-            return true;
-        }
-        return super.onOptionsItemSelected(item);
-    }
-
-
-
-    @Override
-    public android.support.v4.content.Loader<String> onCreateLoader(int id, @Nullable final Bundle bundle) {
-        return new AsyncTaskLoader<String>(this)
-        {
+        mNewsItemViewModel.getmAllNewsItem().observe(this, new Observer<List<NewsItem>>() {
             @Override
-            protected void onStartLoading() {
-                super.onStartLoading();
-                Log.d(TAG, "onStartLoading called");
-                super.onStartLoading();
-                if(bundle == null){
-                    Log.d(TAG, "bundle null");
-                    return;
-                }
-                mProgressBar.setVisibility(View.VISIBLE);
+            public void onChanged(@Nullable List<NewsItem> newsItems) {
+                mAdapter.setNewsList(newsItems);
             }
+        });
 
-            @Nullable
-            @Override
-            public String loadInBackground() {
-                Log.d(TAG, "loadInBackground called");
-
-                String newsSearchQuery = bundle.getString(SEARCH_QUERY_URL_EXTRA);
-                if(newsSearchQuery == null || newsSearchQuery.isEmpty()){
-                    return null;
-                }
-                try {
-                    Log.d(TAG, "begin network call");
-                    newsSearchResult = NetworkUtils.getResponseFromHttpUrl(new URL(newsSearchQuery));
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-                Log.d(TAG, newsSearchResult);
-                return newsSearchResult;
-            }
-        };
-    }
-
-    @Override
-    public void onLoadFinished(@NonNull Loader<String> loader, String o) {
-       // Log.d("mycode", o);
-        mProgressBar.setVisibility(View.GONE);
-        populateRecyclerView(o);
-    }
-
-
-
-    @Override
-    public void onLoaderReset(@NonNull Loader<String> loader) {
+        NewsItemFireBaseJobDispatcher.getNewsItemFireBaseJobService().ScheduleTask(this);
 
     }
 
-    public void populateRecyclerView(String searchResults ){
-        //Log.d("mycode", searchResults);
-        newsItem = JsonUtils.parseNews(searchResults);
-        mAdapter.mNewsList.addAll(newsItem);
-        mAdapter.notifyDataSetChanged();
-    }
+//    private void  makeNewsURL(){
+//        URL newsURL = NetworkUtils.buildUrl();
+//        new NewsQueryTask().execute(newsURL);
+//    }
+//    public class NewsQueryTask extends AsyncTask<URL, Void, String> {
+//        @Override
+//        protected String doInBackground(URL... urls) {
+//            URL clickUrl = urls[0];
+//            String newsAppClickResult = null;
+//            try{
+//                newsAppClickResult = NetworkUtils.getResponseFromHttpUrl(clickUrl);
+//            }
+//            catch (IOException e){
+//                e.printStackTrace();
+//            }
+//            return newsAppClickResult;
+//        }
+//
+//        @Override
+//        protected void onPostExecute(String s) {
+//            Log.d("string_of_array", s);
+//            newsItem = JsonUtils.parseNews(s);
+//            mAdapter.mNewsList.addAll(newsItem);
+//            mAdapter.notifyDataSetChanged();
+//        }
+//    }
+
+
     @Override
     public boolean onCreateOptionsMenu(Menu menu){
         getMenuInflater().inflate(R.menu.main_menu,menu);
         return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        int itemThatClickedId = item.getItemId();
+        if (itemThatClickedId == R.id.action_refresh){
+//            Context context = MainActivity.this;
+//            URL newsURL = NetworkUtils.buildUrl();
+            mNewsItemViewModel.syncURL();
+            return true;
+        }
+        return super.onOptionsItemSelected(item);
     }
 }
